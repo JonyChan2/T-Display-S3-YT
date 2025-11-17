@@ -6,6 +6,9 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include "credential.h"
+#include "esp_lcd_panel_io.h"
+#include "esp_lcd_panel_ops.h"
+#include "esp_lcd_panel_vendor.h"
 
 #define BUTTON_PIN_1 0 // boot button
 #define BUTTON_PIN_2 14
@@ -22,7 +25,7 @@ struct Location
 };
 
 Location locations[] = {
-    {"-8", "SFO", 21, 28},
+    {"-7", "PDT", 21, 28},
     {"-4", "VEN", 44, 40},
     {"-3", "ARG", 48, 58},
     {"+0", "GBR", 68, 18},
@@ -30,6 +33,7 @@ Location locations[] = {
     {"+3", "BHR", 89, 32},
     {"+4", "UAE", 92, 34},
     {"+5:30", "IND", 101, 34},
+    {"+8", "PRC", 111, 29},
     {"+9", "TYO", 124, 29},
     {"+11", "AUS", 127, 55}};
 
@@ -98,6 +102,19 @@ void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color
     lv_disp_flush_ready(disp);
 }
 
+static void example_lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
+{
+    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t)drv->user_data;
+    int offsetx1 = area->x1;
+    int offsetx2 = area->x2;
+    int offsety1 = area->y1;
+    int offsety2 = area->y2;
+    // copy a buffer's content to a specific area of the display
+    esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
+
+    lv_disp_flush_ready(drv);
+}
+
 /* Read the touchpad */
 void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 {
@@ -158,6 +175,7 @@ void setup()
     disp_drv.hor_res = screenWidth;
     disp_drv.ver_res = screenHeight;
     disp_drv.flush_cb = my_disp_flush;
+    //disp_drv.flush_cb = example_lvgl_flush_cb;
     disp_drv.draw_buf = &draw_buf;
     lv_disp_drv_register(&disp_drv);
 
