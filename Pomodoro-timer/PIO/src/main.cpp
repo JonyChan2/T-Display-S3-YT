@@ -5,12 +5,16 @@
 #include <Ticker.h>
 #include <Bounce2.h>
 
+#define PIN_LCD_BL 38
+#define PIN_LCD_RD 9
+#define PIN_LCD_RES 5
+
 /*Change to your screen resolution*/
 static const uint16_t screenWidth = 320;
 static const uint16_t screenHeight = 170;
 
 static lv_disp_draw_buf_t draw_buf;
-static lv_color_t buf[screenWidth * screenHeight / 10];
+static lv_color_t *buf;
 
 TFT_eSPI tft = TFT_eSPI(); /* TFT instance */
 
@@ -22,6 +26,31 @@ void my_print(const char *buf)
   Serial.flush();
 }
 #endif
+
+void setBrightness(uint8_t value)
+{
+    static uint8_t level = 0;
+    static uint8_t steps = 16;
+    if (value == 0) {
+        digitalWrite(PIN_LCD_BL, 0);
+        delay(3);
+        level = 0;
+        return;
+    }
+    if (level == 0) {
+        digitalWrite(PIN_LCD_BL, 1);
+        level = steps;
+        delayMicroseconds(30);
+    }
+    int from = steps - level;
+    int to = steps - value;
+    int num = (steps + to - from) % steps;
+    for (int i = 0; i < num; i++) {
+        digitalWrite(PIN_LCD_BL, 0);
+        digitalWrite(PIN_LCD_BL, 1);
+    }
+    level = value;
+}
 
 /* Display flushing */
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
@@ -50,7 +79,7 @@ Bounce button2 = Bounce(14, 5); // Reset button
 // Timer states
 unsigned long endTime = 0;
 unsigned long lastUpdateTime = 0; // Track last update time for serial debug
-unsigned long remainingTime = 0;  // Track remaining time when paused
+unsigned long remainingTime = FOCUS_DURATION;  // Track remaining time when paused
 bool isFocusTime = false;         // true if focus time, false if break time
 bool isPaused = true;             // true if timer is paused false if running
 int cycleCount = 0;
@@ -108,14 +137,13 @@ void setup()
   Serial.println("I am LVGL_Arduino");
 
   lv_init();
+  buf = (lv_color_t *)heap_caps_malloc(screenHeight*screenHeight * sizeof(lv_color_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
 
 #if LV_USE_LOG != 0
   lv_log_register_print_cb(my_print); /* register print function for debugging */
 #endif
-
   tft.begin();        /* TFT init */
   tft.setRotation(3); /* Landscape orientation, flipped */
-
   lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * screenHeight / 10);
 
   /*Initialize the display*/
@@ -133,6 +161,9 @@ void setup()
   lv_indev_drv_init(&indev_drv);
   indev_drv.type = LV_INDEV_TYPE_POINTER;
   lv_indev_drv_register(&indev_drv);
+
+  pinMode(PIN_LCD_BL,OUTPUT);
+  setBrightness(8);
 
   ui_init();
   Serial.println("Setup done");
@@ -153,6 +184,8 @@ void setup()
   char cycleString[10];                                   // Buffer to hold the cycle count string
   sprintf(cycleString, "0/%d", CYCLES_BEFORE_LONG_BREAK); // Format cycle count as 0/2
   lv_label_set_text(ui_label_cycle, cycleString);         // Update the cycle count label in the setup function
+  isFocusTime=true;
+  
 }
 
 void loop()
@@ -183,12 +216,15 @@ void loop()
         startFocusAnimation(remainingTime); // Pass remaining time to animation function
         lv_obj_add_flag(ui_img_break_sec, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_ADV_HITTEST);
         lv_obj_clear_flag(ui_img_focus_sec, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_ADV_HITTEST);
+        lv_obj_set_style_border_opa(indicator,255,0);
+        lv_obj_set_style_border_color(indicator,lv_color_hex(0xFF0000),0);
       }
       else
       {
         startBreakAnimation(remainingTime); // Pass remaining time to animation function
         lv_obj_add_flag(ui_img_focus_sec, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_ADV_HITTEST);
         lv_obj_clear_flag(ui_img_break_sec, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_ADV_HITTEST);
+        lv_obj_set_style_border_color(indicator,lv_color_hex(0x00FF00),0);
       }
 
       String timeStatus = isFocusTime ? "Focus Time" : "Break Time";
@@ -288,6 +324,8 @@ void handleButtons()
 
       // Change the image to pause
       lv_img_set_src(ui_img_start_pause, &ui_img_elements_pause_png);
+      lv_obj_set_style_border_opa(indicator,255,0);
+      lv_obj_set_style_border_color(indicator,lv_color_hex(0xFF0000),0);
     }
     else
     {
@@ -308,15 +346,19 @@ void handleButtons()
 
       // Change the image to start
       lv_img_set_src(ui_img_start_pause, &ui_img_elements_start_png);
+      lv_obj_set_style_border_opa(indicator,0,0);
     }
   }
 
   if (button2.fell())
   {
     Serial.println("Timer reset");
+    lv_img_set_src(ui_img_start_pause, &ui_img_elements_pause_png);
     cycleCount = 0;                     // Reset cycle count
     startFocus();                       // Start focus regardless of current state
     remainingTime = FOCUS_DURATION;     // Ensure remaining time is set correctly for the new session
     startFocusAnimation(remainingTime); // Start the focus animation with the full duration
+    lv_obj_set_style_border_opa(indicator,255,0);
+    lv_obj_set_style_border_color(indicator,lv_color_hex(0xFF0000),0);
   }
 }

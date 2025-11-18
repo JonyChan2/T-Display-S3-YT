@@ -5,7 +5,7 @@
 #include <WiFi.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
-#include "credential.h"
+#include "credential.h" // Turn this into espTouch Certification
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_vendor.h"
@@ -26,13 +26,13 @@ struct Location
 
 Location locations[] = {
     {"-7", "PDT", 21, 28},
-    {"-4", "VEN", 44, 40},
-    {"-3", "ARG", 48, 58},
-    {"+0", "GBR", 68, 18},
-    {"+1", "DEU", 78, 19},
-    {"+3", "BHR", 89, 32},
-    {"+4", "UAE", 92, 34},
-    {"+5:30", "IND", 101, 34},
+    //{"-4", "VEN", 44, 40},
+    //{"-3", "ARG", 48, 58},
+    //{"+0", "GBR", 68, 18},
+    //{"+1", "DEU", 78, 19},
+    //{"+3", "BHR", 89, 32},
+    //{"+4", "UAE", 92, 34},
+    //{"+5:30", "IND", 101, 34},
     {"+8", "PRC", 111, 29},
     {"+9", "TYO", 124, 29},
     {"+11", "AUS", 127, 55}};
