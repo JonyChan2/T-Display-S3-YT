@@ -29,6 +29,7 @@
 #include "pin_config.h"
 #include "esp_sntp.h"
 #include "time.h"
+#include "tile.h"
 
 #include "zones.h"
 #include <HTTPClient.h>
@@ -362,9 +363,12 @@ void setup()
     is_initialized_lvgl = true;
 
     LV_IMG_DECLARE(lilygo2_gif);
+    //Boot logo below.
+    /*
     lv_obj_t *logo_img = lv_gif_create(lv_scr_act());
     lv_obj_center(logo_img);
     lv_gif_set_src(logo_img, &lilygo2_gif);
+    */
 
     // Adjust brightness
     pinMode(PIN_LCD_BL, OUTPUT);
@@ -375,8 +379,8 @@ void setup()
         delay(50);
     }
 
-    LV_DELAY(1200);
-    lv_obj_del(logo_img);
+    //LV_DELAY(1200);
+    //lv_obj_del(logo_img);
 
     // https://github.com/Xinyuan-LilyGO/T-Display-S3/issues/278
     Serial.println("tone ...");
@@ -388,7 +392,9 @@ void setup()
     SD_MMC.setPins(PIN_SD_CLK, PIN_SD_CMD, PIN_SD_D0);
     inited_sd = SD_MMC.begin("/sdcard", true, true);
 
-    wifi_test();
+    //wifi_test();
+    tilepage();
+    //getSub("https://api.bilibili.com/x/relation/stat?vmid=3546633304279833");
 
     button1.attachClick([]() {
         // Sleep display
@@ -402,7 +408,8 @@ void setup()
     });
 
     button2.attachClick([]() {
-        ui_switch_page();
+        //ui_switch_page();
+        switch_page();
     });
 }
 
